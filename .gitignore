@@ -1,0 +1,27 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Java
+target/
+*.class
+*.jar
+*.war
+.mvn/wrapper/maven-wrapper.jar
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS / logs
+*.log
+hs_err_pid*

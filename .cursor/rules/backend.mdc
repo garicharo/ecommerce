@@ -1,0 +1,52 @@
+---
+description: Spring Boot — OOP, exceptions, HTTP, transactions
+globs: "**/*.java"
+alwaysApply: false
+---
+
+# Backend (Spring Boot 4.1.1 / Java 21)
+
+Packages: `catalog`, `commerce`, `identity`, `shared`. Controllers stay thin. Business rules live in application services, not `@RestController` and not `@Entity` getters with side effects.
+
+Money: **`BigDecimal` only**. Parse CSV prices with `new BigDecimal(s)` after format checks; never `Double.parseDouble`.
+
+## Transactions
+
+- `@Transactional` on application services that write (checkout, import chunk, cart update).
+- Checkout: **one** transaction: `SELECT … FOR UPDATE` → fake pay → decrement stock → insert order → clear cart lines. Failure → rollback. No leftover PAID order with stock unchanged.
+- Read-only queries: `@Transactional(readOnly = true)`.
+- Do not `@Transactional` on controllers or repositories.
+
+## Exceptions → HTTP
+
+Map in `@RestControllerAdvice` to `{ "code", "message", "details" }`. Never return a stack trace.
+
+| Situation | Type | Status |
+|---|---|---|
+| Signup created | — | 201 |
+| Login / GET / PUT OK | — | 200 |
+| Import accepted | — | 202 |
+| Validation, empty cart | `ApiException` | 400 |
+| No session | Security | 401 |
+| SHOPPER hits `/api/admin/**` | Security | 403 |
+| Unknown sku / job | `NotFoundException` | 404 |
+| SKU exists, stock race, idempotency mismatch | domain | 409 |
+| CSV too large | — | 413 |
+| Unexpected | log + generic | 500 |
+
+Do not use 200 for errors. Do not use 500 for “out of stock”. 3xx: SPA routes only (React Router), not the API.
+
+```java
+// ❌ BAD
+return ResponseEntity.ok(Map.of("error", e.getMessage()));
+
+// ✅ GOOD
+throw new InsufficientStockException(lines); // advice → 409
+```
+
+## OOP
+
+- One use-case class per flow (`CheckoutService`, `CsvImportService`). Inject ports (repo, `PaymentClient`).
+- Domain exceptions extend a shared `ApiException(code, status)`.
+- JPA entities: constraints match DB. Money = `BigDecimal`, never `double`. Products: `@Version` on `version`; stale admin PUT → 409.
+- `spring.jpa.open-in-view=false`. No business in default methods of repositories.

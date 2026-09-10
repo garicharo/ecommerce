@@ -1,0 +1,21 @@
+---
+description: Ecommerce challenge — scope, docs, and how to build
+globs: "**/*.{md,yml,yaml,java,ts,tsx,sql}"
+alwaysApply: false
+---
+
+# Challenge repo
+
+Read `PLAN.md`, `SPECS.md`, `DIAGRAMS.md` before writing code. Specs win over improvisation.
+
+- Modular monolith: `services/api` + `services/web` + Postgres. No extra Java services, Redis, ES, S3, Kafka.
+- AI is allowed. **No generated comments** in source. Decisions go in README.
+- CSV download date in README: **2026-09-09**.
+- One command: `docker compose up --build` → `http://localhost:8080`.
+- Admin login is env `APP_ADMIN_EMAIL` / `APP_ADMIN_PASSWORD` (seeded user). That is **not** `SPRING_DATASOURCE_PASSWORD`.
+- If something ships incomplete, add it to `KNOWN_ISSUES.md` instead of hiding it.
+
+```text
+❌ Magento / OpenSearch / four microservices
+✅ Spring Boot modules catalog + commerce + identity
+```
