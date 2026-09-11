@@ -21,7 +21,7 @@
     <ul id="products"></ul>
     <p id="empty" hidden>No products yet.</p>
     <script>
-      fetch("/api/products")
+      fetch("/api/products?size=50")
         .then((r) => r.json())
         .then((page) => {
           const items = page.content || [];
