@@ -1,0 +1,28 @@
+
+
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT GEN_RANDOM_UUID(),
+    email VARCHAR(255) NOT NULL UNIQUE,
+    display_name VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(32) NOT NULL DEFAULT 'SHOPPER' CHECK (role IN ('SHOPPER', 'ADMIN')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE products (
+    id UUID PRIMARY KEY DEFAULT GEN_RANDOM_UUID(),
+    version BIGINT NOT NULL DEFAULT 0,
+    name VARCHAR(255) NOT NULL,
+    sku VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT NOT NULL,
+    category VARCHAR(255) NOT NULL,
+    price NUMERIC(12, 2) NOT NULL CHECK (price >= 0),
+    stock INT NOT NULL CHECK (stock >= 0),
+    weight_kg NUMERIC(10, 3) NOT NULL CHECK (weight_kg >= 0),
+    origin VARCHAR(32) NOT NULL DEFAULT 'MANUAL' CHECK (origin IN ('MANUAL', 'CSV')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_products_category ON products (category);
+CREATE INDEX idx_products_name ON products ((LOWER(name)));

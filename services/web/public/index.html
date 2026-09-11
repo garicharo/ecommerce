@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shop</title>
+    <style>
+      body { font-family: sans-serif; margin: 2rem; max-width: 40rem; }
+      nav a { margin-right: 1rem; }
+      li { margin: 0.5rem 0; }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="/">Shop</a>
+      <a href="/login">Login</a>
+      <a href="/admin">Admin</a>
+    </nav>
+    <h1>Shop</h1>
+    <p>Public catalog. No account needed.</p>
+    <ul id="products"></ul>
+    <p id="empty" hidden>No products yet.</p>
+    <script>
+      fetch("/api/products")
+        .then((r) => r.json())
+        .then((page) => {
+          const items = page.content || [];
+          const ul = document.getElementById("products");
+          const empty = document.getElementById("empty");
+          if (!items.length) {
+            empty.hidden = false;
+            return;
+          }
+          for (const p of items) {
+            const li = document.createElement("li");
+            li.textContent = p.sku + " — " + p.name + " — $" + p.price + " — stock " + p.stock;
+            ul.appendChild(li);
+          }
+        });
+    </script>
+  </body>
+</html>

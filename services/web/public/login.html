@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login</title>
+    <style>
+      body { font-family: sans-serif; margin: 2rem; max-width: 24rem; }
+      label { display: block; margin: 0.75rem 0; }
+      input { width: 100%; box-sizing: border-box; }
+      button { margin-top: 0.75rem; }
+      .err { color: #b00020; }
+    </style>
+  </head>
+  <body>
+    <p><a href="/">Shop</a></p>
+    <h1>Login</h1>
+    <p>Admin seed: admin@shop.local / admin1234 (HTTP Basic, Day 1).</p>
+    <form id="form">
+      <label>Email <input name="email" type="email" required value="admin@shop.local" /></label>
+      <label>Password <input name="password" type="password" required value="admin1234" /></label>
+      <button type="submit">Sign in</button>
+    </form>
+    <p class="err" id="err"></p>
+    <script>
+      document.getElementById("form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const email = fd.get("email");
+        const password = fd.get("password");
+        const basic = btoa(email + ":" + password);
+        const res = await fetch("/api/admin/products", {
+          method: "POST",
+          headers: {
+            Authorization: "Basic " + basic,
+            "Content-Type": "application/json",
+          },
+          body: "{}",
+        });
+        if (res.status === 401) {
+          document.getElementById("err").textContent = "Invalid credentials.";
+          return;
+        }
+        sessionStorage.setItem("basic", basic);
+        location.href = "/admin";
+      });
+    </script>
+  </body>
+</html>

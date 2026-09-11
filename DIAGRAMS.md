@@ -300,3 +300,23 @@ sequenceDiagram
 
 Header is mapped **by name**. Extra columns (`image_url`, …) are skipped. Missing `sku` / `price` / … → `FAILED_HEADER`.
 
+---
+
+## 8. Spring Boot startup
+
+```mermaid
+flowchart TB
+  main["1 ShopApplication.main"]
+  ctx["2 ApplicationContext\napplication.yml + autoconfig"]
+  fly["3 Flyway: V1__init.sql"]
+  jpa["4 JPA: User entity + UserRepository"]
+  sec["5 SecurityConfig + UserDetailsService"]
+  seed["6 ApplicationRunner\nAdminUserInitializer"]
+  http["7 Tomcat :8080\n/actuator/health"]
+
+  main --> ctx --> fly --> jpa --> sec --> seed --> http
+```
+
+Flyway runs **before** `AdminUserInitializer`. If SQL fails, the admin is never inserted.
+
+

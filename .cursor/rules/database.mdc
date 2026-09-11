@@ -6,6 +6,22 @@ alwaysApply: false
 
 # Database
 
+Engine is **PostgreSQL only** (Compose `postgres:16`). Flyway SQL must be Postgres dialect.
+
+Do **not** use MySQL: no `AUTO_INCREMENT`, `ON UPDATE CURRENT_TIMESTAMP`, `ENGINE=InnoDB`, backticks, or `INT` PKs.
+
+```sql
+-- ❌ BAD (MySQL)
+id INT PRIMARY KEY AUTO_INCREMENT
+created_at TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+CREATE INDEX i ON products (LOWER(name));
+
+-- ✅ GOOD (Postgres)
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE INDEX i ON products ((LOWER(name)));
+```
+
 Schema changes **only** via Flyway. No `ddl-auto=update` in the graded Docker profile. Types: UUID PKs, `numeric` for money/weight, `integer` stock, `timestamptz` UTC.
 
 ## Relations (must exist)
