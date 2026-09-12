@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Checkout</title>
+    <style>
+      body { font-family: sans-serif; margin: 2rem; max-width: 40rem; }
+      nav a { margin-right: 1rem; }
+      .err { color: #b00020; }
+      li { margin: 0.35rem 0; }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="/">Shop</a>
+      <a href="/cart">Cart</a>
+    </nav>
+    <h1>Checkout</h1>
+    <p>Confirm lines and buy. Stock is checked when you pay — the cart does not hold units.</p>
+    <p class="err" id="err"></p>
+    <p id="empty" hidden>Cart is empty. <a href="/">Shop</a></p>
+    <ul id="lines"></ul>
+    <p id="total"></p>
+    <button type="button" id="buy" hidden>Buy</button>
+    <script>
+      const basic = sessionStorage.getItem("basic");
+      if (!basic) location.href = "/login";
+      const err = document.getElementById("err");
+      const buy = document.getElementById("buy");
+      let idempotencyKey = crypto.randomUUID();
+
+      fetch("/api/cart", { headers: { Authorization: "Basic " + basic } })
+        .then((r) => {
+          if (r.status === 401) location.href = "/login";
+          return r.json();
+        })
+        .then((cart) => {
+          const items = cart.items || [];
+          document.getElementById("empty").hidden = items.length > 0;
+          if (!items.length) return;
+          const ul = document.getElementById("lines");
+          let sum = 0;
+          for (const line of items) {
+            const li = document.createElement("li");
+            li.textContent = line.sku + " — " + line.name + " × " + line.qty + " @ $" + line.price;
+            ul.appendChild(li);
+            sum += Number(line.price) * line.qty;
+          }
+          document.getElementById("total").textContent = "Total $" + sum.toFixed(2);
+          buy.hidden = false;
+        });
+
+      buy.addEventListener("click", async () => {
+        buy.disabled = true;
+        err.textContent = "";
+        const res = await fetch("/api/checkout", {
+          method: "POST",
+          headers: {
+            Authorization: "Basic " + basic,
+            "Idempotency-Key": idempotencyKey,
+          },
+        });
+        const body = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          location.href = "/login";
+          return;
+        }
+        if (res.status === 409 && body.code === "INSUFFICIENT_STOCK") {
+          const details = (body.details || [])
+            .map((d) => d.sku + " requested " + d.requested + ", available " + d.available)
+            .join("; ");
+          err.textContent = details || body.message || "Not enough stock";
+          buy.disabled = false;
+          return;
+        }
+        if (!res.ok) {
+          err.textContent = body.message || "Checkout failed (" + res.status + ")";
+          buy.disabled = false;
+          return;
+        }
+        location.href = "/orders";
+      });
+    </script>
+  </body>
+</html>

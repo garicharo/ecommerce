@@ -17,7 +17,7 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(ex.getStatus()).body(Map.of(
                 "code", ex.getCode(),
                 "message", ex.getMessage(),
-                "details", List.of()));
+                "details", ex.getDetails()));
     }
 
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)

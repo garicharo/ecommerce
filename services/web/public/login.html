@@ -15,7 +15,7 @@
   <body>
     <p><a href="/">Shop</a></p>
     <h1>Login</h1>
-    <p>Admin seed: admin@shop.local / admin1234 (HTTP Basic, Day 1).</p>
+    <p>Demo admin: admin@shop.local / admin1234 (HTTP Basic). Admin can also shop.</p>
     <form id="form">
       <label>Email <input name="email" type="email" required value="admin@shop.local" /></label>
       <label>Password <input name="password" type="password" required value="admin1234" /></label>
@@ -29,20 +29,16 @@
         const email = fd.get("email");
         const password = fd.get("password");
         const basic = btoa(email + ":" + password);
-        const res = await fetch("/api/admin/products", {
-          method: "POST",
-          headers: {
-            Authorization: "Basic " + basic,
-            "Content-Type": "application/json",
-          },
-          body: "{}",
+        const res = await fetch("/api/cart", {
+          headers: { Authorization: "Basic " + basic },
         });
         if (res.status === 401) {
           document.getElementById("err").textContent = "Invalid credentials.";
           return;
         }
         sessionStorage.setItem("basic", basic);
-        location.href = "/admin";
+        const next = new URLSearchParams(location.search).get("next");
+        location.href = next || "/";
       });
     </script>
   </body>

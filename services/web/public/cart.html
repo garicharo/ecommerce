@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cart</title>
+    <style>
+      body { font-family: sans-serif; margin: 2rem; max-width: 40rem; }
+      nav a { margin-right: 1rem; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #ccc; padding: 0.4rem; text-align: left; }
+      .err { color: #b00020; }
+      input { width: 4rem; }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="/">Shop</a>
+      <a href="/cart">Cart</a>
+      <a href="/checkout">Checkout</a>
+    </nav>
+    <h1>Cart</h1>
+    <p class="err" id="err"></p>
+    <p id="empty" hidden>Cart is empty.</p>
+    <table id="table" hidden>
+      <thead>
+        <tr><th>SKU</th><th>Name</th><th>Qty</th><th>Price</th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p><a id="buy" href="/checkout">Checkout</a></p>
+    <script>
+      const basic = sessionStorage.getItem("basic");
+      if (!basic) location.href = "/login";
+      const err = document.getElementById("err");
+
+      async function put(sku, qty) {
+        const res = await fetch("/api/cart/items", {
+          method: "PUT",
+          headers: {
+            Authorization: "Basic " + basic,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ sku, qty }),
+        });
+        if (res.status === 401) location.href = "/login";
+        return res;
+      }
+
+      async function load() {
+        const res = await fetch("/api/cart", { headers: { Authorization: "Basic " + basic } });
+        if (res.status === 401) {
+          location.href = "/login";
+          return;
+        }
+        const cart = await res.json();
+        const items = cart.items || [];
+        const empty = document.getElementById("empty");
+        const table = document.getElementById("table");
+        const rows = document.getElementById("rows");
+        empty.hidden = items.length > 0;
+        table.hidden = items.length === 0;
+        document.getElementById("buy").hidden = items.length === 0;
+        rows.replaceChildren();
+        for (const line of items) {
+          const tr = document.createElement("tr");
+          const sku = document.createElement("td");
+          sku.textContent = line.sku;
+          const name = document.createElement("td");
+          name.textContent = line.name;
+          const qtyTd = document.createElement("td");
+          const qty = document.createElement("input");
+          qty.type = "number";
+          qty.min = "0";
+          qty.max = String(line.stock);
+          qty.value = String(line.qty);
+          qty.addEventListener("change", async () => {
+            const n = Number(qty.value);
+            const up = await put(line.sku, n);
+            if (!up.ok) err.textContent = "Could not update qty";
+            else load();
+          });
+          qtyTd.appendChild(qty);
+          const price = document.createElement("td");
+          price.textContent = "$" + line.price;
+          tr.append(sku, name, qtyTd, price);
+          rows.appendChild(tr);
+        }
+      }
+      load();
+    </script>
+  </body>
+</html>

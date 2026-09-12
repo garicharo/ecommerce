@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Orders</title>
+    <style>
+      body { font-family: sans-serif; margin: 2rem; max-width: 48rem; }
+      nav a { margin-right: 1rem; }
+      article { border: 1px solid #ddd; padding: 0.75rem; margin: 0.75rem 0; }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="/">Shop</a>
+      <a href="/cart">Cart</a>
+      <a href="/orders">Orders</a>
+    </nav>
+    <h1>Your orders</h1>
+    <p id="empty" hidden>No orders yet.</p>
+    <div id="list"></div>
+    <script>
+      const basic = sessionStorage.getItem("basic");
+      if (!basic) location.href = "/login";
+
+      fetch("/api/orders", { headers: { Authorization: "Basic " + basic } })
+        .then((r) => {
+          if (r.status === 401) location.href = "/login";
+          return r.json();
+        })
+        .then((page) => {
+          const items = page.items || [];
+          document.getElementById("empty").hidden = items.length > 0;
+          const list = document.getElementById("list");
+          for (const o of items) {
+            const art = document.createElement("article");
+            const h = document.createElement("h2");
+            h.textContent = o.status + " — $" + o.total;
+            const p = document.createElement("p");
+            p.textContent = o.id + " — " + o.createdAt;
+            const ul = document.createElement("ul");
+            for (const line of o.items || []) {
+              const li = document.createElement("li");
+              li.textContent = line.sku + " — " + line.name + " × " + line.qty + " @ $" + line.unitPrice;
+              ul.appendChild(li);
+            }
+            art.append(h, p, ul);
+            list.appendChild(art);
+          }
+        });
+    </script>
+  </body>
+</html>

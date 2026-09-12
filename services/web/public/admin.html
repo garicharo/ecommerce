@@ -17,6 +17,7 @@
       <a href="/">Shop</a>
       <a href="/admin">Products</a>
       <a href="/admin/imports">CSV import</a>
+      <a href="/admin/orders">Orders</a>
       <a href="#" id="out">Log out</a>
     </nav>
     <h1>Admin</h1>
@@ -48,7 +49,7 @@
         const page = await fetch("/api/products").then((r) => r.json());
         const ul = document.getElementById("products");
         ul.innerHTML = "";
-        for (const p of page.content || []) {
+        for (const p of page.items || []) {
           const li = document.createElement("li");
           li.textContent = p.sku + " — " + p.name + " — v" + p.version;
           ul.appendChild(li);

@@ -44,6 +44,6 @@ Keep controllers thin. Validation on DTOs, not on the entity if you prefer.
 - [ ] Admin can POST a product; `GET /api/products` lists it  
 - [ ] No `double` for money  
 
-CSV import is **Day 2**. Do not start it yet.
+CSV import is **Day 2**. Search + checkout is **Day 3** — you write those; see [PRACTICE-DAY3.md](PRACTICE-DAY3.md).
 
 When you are stuck, ask. When you want a review, say which files you wrote.
