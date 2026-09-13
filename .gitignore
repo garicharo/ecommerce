@@ -17,9 +17,6 @@ dist-ssr/
 *.local
 /package-lock.json
 
-# Local study notes (not for GitHub)
-REACT_STRUCTURE.md
-
 # IDE
 .idea/
 *.iml
