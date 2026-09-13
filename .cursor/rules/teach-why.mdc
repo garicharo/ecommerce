@@ -1,0 +1,18 @@
+---
+description: When the user asks about React (or this shop), explain why it was designed that way
+alwaysApply: true
+---
+
+# Teach the why
+
+The user is reviewing `services/web` React and will ask questions. **Lead with the design reason**, then the code.
+
+Typical reasons in this take-home:
+
+- **Money / stock:** server is source of truth (cart body `{ sku, qty }`, checkout empty + `Idempotency-Key`, prices from locked products).
+- **Auth is not a button:** hide `/admin` in the SPA; API still 403s a shopper.
+- **Responsive:** catalog ~375px (2 columns) and desktop (max 6). Overlay on product cards because hover does not exist on phones.
+- **XSS:** `{product.name}` as text, never `dangerouslySetInnerHTML`.
+- **Staff bar:** shared `api` client, debounce 300ms, `q` only if length ≥ 2, loading/empty/error on every screen.
+
+Do not answer only “what the function does”. Say why that shape beat the alternative (localStorage cart, JWT, guest checkout, Pinterest-red clone, etc.).

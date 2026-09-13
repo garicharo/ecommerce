@@ -1,7 +1,6 @@
 package com.garicharo.shop.catalog;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -21,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.garicharo.shop.identity.User;
 import com.garicharo.shop.identity.UserRepository;
 import com.garicharo.shop.shared.ApiException;
+import com.garicharo.shop.shared.PageResponse;
 
 @RestController
 @RequestMapping("/api/admin/imports")
@@ -43,19 +43,20 @@ public class ImportController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, UUID>> create(
+    public ResponseEntity<ImportAccepted> create(
             @RequestParam("file") MultipartFile file,
             Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new ApiException("NOT_FOUND", "User not found", HttpStatus.UNAUTHORIZED));
         UUID jobId = csvImportService.importCsv(file, user);
-        return ResponseEntity.accepted().body(Map.of("jobId", jobId));
+        return ResponseEntity.accepted().body(new ImportAccepted(jobId));
     }
 
     @GetMapping
-    public Page<ImportJobResponse> list(@PageableDefault(size = 20) Pageable pageable) {
-        return importJobRepository.findAllByOrderByCreatedAtDesc(pageable)
+    public PageResponse<ImportJobResponse> list(@PageableDefault(size = 20) Pageable pageable) {
+        Page<ImportJobResponse> jobs = importJobRepository.findAllByOrderByCreatedAtDesc(pageable)
                 .map(job -> ImportJobResponse.from(job, List.of()));
+        return PageResponse.of(jobs);
     }
 
     @GetMapping("/{jobId}")
@@ -64,16 +65,16 @@ public class ImportController {
     }
 
     @GetMapping("/{jobId}/rows")
-    public Page<ImportRowResult> rows(
+    public PageResponse<ImportRowResult> rows(
             @PathVariable UUID jobId,
             @RequestParam(required = false) ImportRowOutcome outcome,
             @PageableDefault(size = 20) Pageable pageable) {
         if (!importJobRepository.existsById(jobId)) {
             throw new ApiException("NOT_FOUND", "Import job not found", HttpStatus.NOT_FOUND);
         }
-        if (outcome == null) {
-            return importRowResultRepository.findByJobId(jobId, pageable);
-        }
-        return importRowResultRepository.findByJobIdAndOutcome(jobId, outcome, pageable);
+        Page<ImportRowResult> rows = outcome == null
+                ? importRowResultRepository.findByJobId(jobId, pageable)
+                : importRowResultRepository.findByJobIdAndOutcome(jobId, outcome, pageable);
+        return PageResponse.of(rows);
     }
 }

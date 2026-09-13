@@ -1,0 +1,34 @@
+---
+description: Staff React + TypeScript practices for the storefront
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# React / TypeScript (staff bar)
+
+Vite SPA in `services/web`. Functional components. Strict TS. No `any`. No AI comments.
+
+- Shared `api` client (`credentials: "include"`). No ad-hoc `fetch` in pages.
+- Colocate UI state in the page; extract a hook only when two screens share it (`useDebouncedValue`).
+- Keys = SKU / order id, never array index. Lists render **text** (`{product.name}`), never `dangerouslySetInnerHTML`.
+- Every screen: loading, empty, error, success. Disable **Buy** / **Upload** / **Add to cart** while in-flight.
+- One `Idempotency-Key` per checkout attempt (`useRef` + `crypto.randomUUID()`). 409 stock → cart, do not clear lines.
+- Quantity inputs: `min=1`, `max=stock`, clamp on input; visible copy **`N available`**. Stock 0 → disable add.
+
+```tsx
+// ❌ BAD
+await fetch("/api/checkout", { method: "POST", body: JSON.stringify({ total }) });
+
+// ✅ GOOD
+await api.post("/api/checkout", undefined, { idempotencyKey });
+```
+
+```tsx
+// ❌ BAD
+<div dangerouslySetInnerHTML={{ __html: product.name }} />
+
+// ✅ GOOD
+<h2>{product.name}</h2>
+```
+
+No Next.js, Storybook, Redux, or a component library. React Router for `/`, `/products/:sku`, `/cart`, `/checkout`, `/orders`, `/login`, `/signup`, `/admin/**`.

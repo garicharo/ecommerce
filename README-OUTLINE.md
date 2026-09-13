@@ -1,6 +1,8 @@
-# README outline (assemble on Day 4)
+# README outline (Day 4 notes)
 
-Not the public README. Copy from here into `README.md` when search + checkout exist. English, short, reviewer-first.
+**Superseded.** The public README is [README.md](README.md). This file was a checklist while search and checkout were still missing; do not treat it as current.
+
+Not the public README. English, short, reviewer-first.
 
 PDF requires: CSV download date, how to run locally, decisions / approach / alternatives considered. GitHub **is** the deliverable.
 

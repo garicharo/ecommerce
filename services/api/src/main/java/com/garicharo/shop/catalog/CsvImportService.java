@@ -192,7 +192,7 @@ public class CsvImportService {
         return importJobRepository.save(importJob).getId();
     }
 
-    private List<Map<String, Object>> errorsGrouped(UUID jobId) {
+    private List<ErrorGroup> errorsGrouped(UUID jobId) {
         return importRowResultRepository
                 .findByJobIdAndOutcome(jobId, ImportRowOutcome.FAILED, org.springframework.data.domain.Pageable.unpaged())
                 .getContent()
@@ -202,7 +202,7 @@ public class CsvImportService {
                         java.util.stream.Collectors.counting()))
                 .entrySet()
                 .stream()
-                .map(entry -> Map.<String, Object>of("code", entry.getKey(), "count", entry.getValue()))
+                .map(entry -> new ErrorGroup(entry.getKey(), entry.getValue()))
                 .toList();
     }
 }

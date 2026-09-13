@@ -43,12 +43,12 @@ flowchart TB
   end
 
   subgraph admin [role ADMIN]
-    AHome["/admin"]
+    Imports["/admin and /admin/imports"]
     Products["/admin/products"]
     PNew["/admin/products/new"]
     PEdit["/admin/products/:sku"]
-    Imports["/admin/imports"]
     Job["/admin/imports/:jobId"]
+    AOrders["/admin/orders"]
   end
 
   Home --> Detail
@@ -58,14 +58,14 @@ flowchart TB
   Home --> Login
   Login --> Signup
   Signup --> Home
-  AHome --> Products
+  Imports --> Products
   Products --> PNew
   Products --> PEdit
-  AHome --> Imports
   Imports --> Job
+  Imports --> AOrders
 ```
 
-Shopper hitting `/admin` → redirect `/`. Admin can also use the storefront.
+`/admin` redirects to **CSV import**. Shopper hitting `/admin` → redirect `/`. Admin can also use the storefront. Header search + category sit on the catalog, not on a second toolbar.
 
 ---
 
@@ -286,13 +286,13 @@ sequenceDiagram
   Note over UI: length 1 — do not send q
   U->>UI: type "sho"
   Note over UI: debounce 300ms
-  UI->>A: GET /api/products?q=sho&category=&sort=name_asc&page=0&size=20
+  UI->>A: GET /api/products?q=sho&category=&sort=name_asc&page=0&size=24
   A->>DB: ILIKE on name, description, category, sku
   A-->>UI: items + total
-  UI-->>U: grid + optional 5-row typeahead (same URL size=5)
+  UI-->>U: catalog grid
 ```
 
-`q` matches name, description, category, and sku. Optional dropdown still filters **exact** category. Sort by name or price. Out-of-stock products still appear.
+`q` matches name, description, category, and sku. Category is an exact match in the same header control as search. The API still accepts `sort`; the storefront uses the default `name_asc`. Out-of-stock products still appear. The grid is the search UI (no separate typeahead list).
 
 ---
 

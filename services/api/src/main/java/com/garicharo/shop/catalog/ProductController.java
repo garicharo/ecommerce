@@ -1,8 +1,5 @@
 package com.garicharo.shop.catalog;
 
-import java.util.List;
-import java.util.Map;
-
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,8 +33,8 @@ public class ProductController {
     }
 
     @GetMapping("/products/categories")
-    public Map<String, List<String>> getCategories() {
-        return Map.of("items", productService.categories());
+    public CategoryList getCategories() {
+        return new CategoryList(productService.categories());
     }
 
     @GetMapping("/products/{sku}")

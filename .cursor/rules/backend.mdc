@@ -13,7 +13,8 @@ Money: **`BigDecimal` only**. Parse CSV prices with `new BigDecimal(s)` after fo
 ## Transactions
 
 - `@Transactional` on application services that write (checkout, import chunk, cart update).
-- Checkout: **one** transaction: `SELECT … FOR UPDATE` → fake pay → decrement stock → insert order → clear cart lines. Failure → rollback. No leftover PAID order with stock unchanged.
+- Checkout body has **no prices**. Snapshot `product.getPrice()` / `getName()` after the row lock. Fake pay uses server `order.total`.
+- No `DELETE` mapping on orders. Shopper order GET filters by owner.
 - Read-only queries: `@Transactional(readOnly = true)`.
 - Do not `@Transactional` on controllers or repositories.
 

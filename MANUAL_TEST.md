@@ -1,27 +1,26 @@
 # Manual test checklist
 
-Run this after a chunk of changes (catalog, security, CSV, checkout, Docker). Tick what exists today; skip sections whose endpoints still 404.
+Run this after a chunk of changes (catalog, security, CSV, checkout, Docker). Contract: [SPECS.md](SPECS.md). Public run path: [README.md](README.md).
 
-Contract: [SPECS.md](SPECS.md).
+**Usual path:** `docker compose up --build` → browser **http://localhost:8080** (nginx). Do not also run `mvn spring-boot:run` on 8080.
 
-**Now (Day 1):** Postgres in Docker + API on the host (`mvn spring-boot:run`) → `http://localhost:8080`.  
-**Later:** `docker compose up --build` and the browser only uses `http://localhost:8080` (nginx). Do not mix both on port 8080 at once.
-
-Admin HTTP Basic (not the Postgres password):
+Admin login (not the Postgres password):
 
 ```text
 admin@shop.local
 admin1234
 ```
 
+The storefront uses a session cookie (`POST /api/auth/login`). `curl -u` still works because HTTP Basic is enabled on the API for these checks.
+
 ---
 
 ## 0. Start (every session)
 
 - [ ] Docker Desktop is running (`docker info` prints Server, no “Cannot connect”).
-- [ ] Postgres: from repo root `docker compose up -d db` then `docker compose ps` → `db` **healthy**, `5432`.
-- [ ] API: `cd services/api && mvn spring-boot:run` until Tomcat started.
-- [ ] If `8080` is already in use, stop the other process. You may be hitting nginx instead of Spring.
+- [ ] From repo root: `docker compose up --build -d` then `docker compose ps` → `db`, `api`, `web` healthy.
+- [ ] Browser: http://localhost:8080 (Gila Store).
+- [ ] If `8080` is already in use, stop the other process.
 
 ---
 
@@ -129,7 +128,7 @@ curl -sS -o /dev/null -w "%{http_code}\n" http://localhost:8080/api/products/MT-
 
 ---
 
-## 3. Search (Day 3 — skip until `q=` is implemented)
+## 3. Search
 
 ```bash
 curl -sS "http://localhost:8080/api/products?q=sh"
@@ -147,7 +146,7 @@ curl -sS http://localhost:8080/api/products/categories
 
 ---
 
-## 4. CSV import (Day 2 — skip until import API exists)
+## 4. CSV import
 
 Use `fixtures/` / `Code Challenge E-Commerce.csv`. Admin only.
 
@@ -162,7 +161,7 @@ Use `fixtures/` / `Code Challenge E-Commerce.csv`. Admin only.
 
 ---
 
-## 5. Auth shopper (when signup/login exist)
+## 5. Auth shopper
 
 - [ ] Signup with `email`, `password`, `displayName` → session cookie
 - [ ] Login wrong password → 401
@@ -173,7 +172,7 @@ Use `fixtures/` / `Code Challenge E-Commerce.csv`. Admin only.
 
 ---
 
-## 6. Cart + checkout (Day 3 — skip until built)
+## 6. Cart + checkout
 
 - [ ] Add sku, qty; qty 0 removes line
 - [ ] Checkout with `Idempotency-Key`: same key twice → one order
@@ -185,9 +184,9 @@ Use `fixtures/` / `Code Challenge E-Commerce.csv`. Admin only.
 
 ---
 
-## 7. Docker full stack (Day 1 afternoon / Day 4)
+## 7. Docker full stack
 
-Stop host `mvn spring-boot:run` first (port 8080).
+Stop host `mvn spring-boot:run` first if it is bound to port 8080.
 
 ```bash
 docker compose up --build

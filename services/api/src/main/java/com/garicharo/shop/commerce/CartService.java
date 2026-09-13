@@ -106,9 +106,10 @@ public class CartService {
         for (CartItem item : cart.getItems()) {
             Product product = productRepository.findBySku(item.getSku()).orElse(null);
             String name = product == null ? item.getSku() : product.getName();
+            String description = product == null || product.getDescription() == null ? "" : product.getDescription();
             BigDecimal price = product == null ? BigDecimal.ZERO : product.getPrice();
             int stock = product == null ? 0 : product.getStock();
-            items.add(new CartItemResponse(item.getSku(), item.getQty(), name, price, stock));
+            items.add(new CartItemResponse(item.getSku(), item.getQty(), name, description, price, stock));
         }
         return new CartResponse(items);
     }

@@ -7,9 +7,9 @@ alwaysApply: false
 # Frontend (React + Vite + TypeScript)
 
 - Functional components. Shared fetch in an `api` client with `credentials: "include"`.
-- Role from `GET /api/auth/me` is **UX only**. Admin routes still fail with 403 if forged.
+- Role from `GET /api/auth/me` is **UX only**. Shopper hitting `/admin` in the SPA → redirect `/`. API still **403**.
 - Catalog public. Cart/checkout: if 401, redirect `/login` and return after success.
-- Signup: shopper only. Admin does not use `/signup`.
+- Signup: shopper only. Admin does not use `/signup`. Do not render admin nav for `SHOPPER`.
 
 ## UX states (every list/page)
 

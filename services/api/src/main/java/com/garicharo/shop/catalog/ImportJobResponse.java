@@ -2,7 +2,6 @@ package com.garicharo.shop.catalog;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public record ImportJobResponse(
@@ -16,11 +15,11 @@ public record ImportJobResponse(
         int skipped,
         int warnings,
         String headline,
-        List<Map<String, Object>> errorsGrouped,
+        List<ErrorGroup> errorsGrouped,
         OffsetDateTime createdAt,
         OffsetDateTime finishedAt) {
 
-    static ImportJobResponse from(ImportJob job, List<Map<String, Object>> errorsGrouped) {
+    static ImportJobResponse from(ImportJob job, List<ErrorGroup> errorsGrouped) {
         int loaded = job.getInserted() + job.getUpdated();
         String headline;
         if (job.getStatus() == ImportJobStatus.FAILED_HEADER) {

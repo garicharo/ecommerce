@@ -1,0 +1,20 @@
+.auth-panel {
+  width: min(24rem, 100%);
+  margin: 0 auto;
+  text-align: center;
+}
+
+.auth-panel .card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  text-align: left;
+  margin-top: 1rem;
+}
+
+.btn-auth {
+  display: block;
+  width: 80%;
+  margin: 1.1rem auto 0;
+  text-align: center;
+}

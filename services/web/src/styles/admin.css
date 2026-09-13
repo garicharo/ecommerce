@@ -1,0 +1,480 @@
+.drop {
+  border: 2px dashed var(--moss);
+  border-radius: var(--radius);
+  padding: 2rem;
+  text-align: center;
+  background: var(--moss-soft);
+}
+
+.drop.over {
+  background: #d5e8de;
+}
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.85rem 1.1rem;
+  margin: 0 0 1rem;
+}
+
+.tabs a {
+  color: var(--ink);
+}
+
+.tabs a.active {
+  font-weight: 700;
+  border-bottom: 2px solid var(--moss);
+}
+
+.tabs button.active {
+  background: var(--moss);
+  color: #fff;
+}
+
+.job-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0.4rem;
+  margin: 0 0 0.9rem;
+}
+
+.job-tabs button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.22rem 0.7rem;
+  background: var(--pin);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.job-tabs button.active {
+  background: var(--moss);
+  color: #fff;
+  border-color: var(--moss);
+}
+
+.admin-page {
+  width: 100%;
+  text-align: center;
+  padding-bottom: 2rem;
+}
+
+.admin-create {
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.admin-csv-link {
+  margin: 1rem 0 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.inset-10,
+.inset-15 {
+  margin-inline: auto;
+  text-align: left;
+}
+
+.inset-10 {
+  width: 80%;
+}
+
+.inset-15 {
+  width: 70%;
+}
+
+.shell h1 {
+  margin: 0 0 0.2rem;
+  font-size: 1.55rem;
+}
+
+.product-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  --form-pad: 0.9rem;
+  padding: var(--form-pad);
+}
+
+.product-form-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem 0.85rem;
+}
+
+.product-form .field {
+  gap: 0.28rem;
+}
+
+.product-form .field input {
+  padding: 0.42rem 0.6rem;
+}
+
+.btn-create {
+  display: block;
+  width: calc(80% + 1.6 * var(--form-pad));
+  margin: 0.2rem auto 0;
+  flex: 0 0 auto;
+  text-align: center;
+}
+
+.csv-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-bottom: 1.25rem;
+}
+
+.csv-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 1.15rem 0 0;
+  flex-shrink: 0;
+}
+
+.csv-actions .btn {
+  width: 80%;
+  flex: none;
+  min-width: 0;
+  text-align: center;
+}
+
+.csv-actions.dual .btn {
+  width: 40%;
+}
+
+.drop-hit {
+  display: block;
+  width: 80%;
+  margin: 0 auto;
+  padding: 0.65rem 1.1rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--moss);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.drop-hit:hover {
+  background: var(--moss-hover);
+}
+
+.drop-hint-desktop {
+  display: none;
+}
+
+.drop {
+  display: none;
+  min-height: 8rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.drop.has-preview {
+  cursor: default;
+  align-items: stretch;
+  justify-content: flex-start;
+  height: 14rem;
+  min-height: 14rem;
+  max-height: 14rem;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0.65rem 0.7rem;
+}
+
+.preview-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.preview-file {
+  margin: 0 0 0.4rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-scroll {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: auto;
+}
+
+table.preview {
+  width: max-content;
+  min-width: max-content;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+table.preview th,
+table.preview td {
+  text-align: left;
+  padding: 0.38rem 0.7rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+table.preview th {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.job-back {
+  margin: 0 0 0.85rem;
+}
+
+.job-summary {
+  background: var(--pin);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.05rem 1.2rem 1.15rem;
+  margin: 0 0 1.15rem;
+}
+
+.job-summary-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  flex-wrap: wrap;
+}
+
+.job-filename {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.job-status-pill {
+  display: inline-block;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: var(--moss-soft);
+  color: var(--moss);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.job-status-pill.is-failed {
+  background: #f5e4e0;
+  color: var(--danger);
+}
+
+.job-status-pill.is-busy {
+  background: #efe4d4;
+  color: var(--muted);
+}
+
+.job-meta {
+  margin: 0.35rem 0 0;
+}
+
+.job-lede {
+  margin: 0.7rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.job-issues {
+  margin: 0.95rem 0 0;
+}
+
+.job-issues h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.job-issues table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.job-issues th,
+.job-issues td {
+  padding: 0.42rem 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.job-issues th {
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--muted);
+}
+
+.job-issues tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.job-issues .num {
+  width: 4.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.catalog-table-wrap {
+  overflow-x: auto;
+  background: var(--pin);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+table.catalog {
+  width: 100%;
+  min-width: 56rem;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.job-detail table.catalog {
+  min-width: 40rem;
+}
+
+table.catalog th {
+  text-align: left;
+  padding: 0.7rem 0.75rem;
+  background: var(--moss);
+  color: #fff;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+table.catalog td {
+  padding: 0.65rem 0.75rem;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+
+table.catalog tbody tr:nth-child(odd) {
+  background: var(--pin);
+}
+
+table.catalog tbody tr:nth-child(even) {
+  background: var(--moss-soft);
+}
+
+table.catalog tbody tr:hover {
+  background: #efe4d4;
+}
+
+table.catalog .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+table.catalog .desc-cell {
+  max-width: 16rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+table.jobs {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+table.jobs th,
+table.jobs td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+table.jobs col.job-file {
+  width: 26%;
+}
+
+table.jobs col.job-status {
+  width: 16%;
+}
+
+table.jobs col.job-result {
+  width: 40%;
+}
+
+table.jobs col.job-started {
+  width: 18%;
+}
+
+table.jobs td.job-result {
+  max-width: none;
+}
+
+table.jobs .job-file a {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.job-row {
+  cursor: pointer;
+}
+
+@media (max-width: 719px) {
+  .inset-10,
+  .inset-15 {
+    width: 100%;
+  }
+
+  .product-form-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 900px) {
+  .drop-hit {
+    display: none;
+  }
+
+  .drop {
+    display: flex;
+  }
+
+  .drop-hint-desktop {
+    display: inline;
+    padding: 1.5rem;
+  }
+
+  .drop-hint-mobile {
+    display: none;
+  }
+}

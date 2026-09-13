@@ -1,0 +1,6 @@
+@import "./styles/base.css";
+@import "./styles/layout.css";
+@import "./styles/catalog.css";
+@import "./styles/cart.css";
+@import "./styles/admin.css";
+@import "./styles/auth.css";

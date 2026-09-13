@@ -60,17 +60,14 @@ public class CheckoutService {
         Map<String, Product> locked = productService.lockBySkus(skus).stream()
                 .collect(Collectors.toMap(Product::getSku, Function.identity()));
 
-        List<Map<String, Object>> stockErrors = new ArrayList<>();
+        List<StockShortage> stockErrors = new ArrayList<>();
         for (CartItem item : cart.getItems()) {
             Product product = locked.get(item.getSku());
             if (product == null) {
                 throw new ApiException("NOT_FOUND", "Product not found with sku: " + item.getSku(), HttpStatus.NOT_FOUND);
             }
             if (product.getStock() < item.getQty()) {
-                stockErrors.add(Map.of(
-                        "sku", item.getSku(),
-                        "requested", item.getQty(),
-                        "available", product.getStock()));
+                stockErrors.add(new StockShortage(item.getSku(), item.getQty(), product.getStock()));
             }
         }
         if (!stockErrors.isEmpty()) {
