@@ -1,6 +1,6 @@
 # Diagrams (v1)
 
-Companion to [PLAN.md](PLAN.md) and [SPECS.md](SPECS.md). Open the mermaid blocks in GitHub or any mermaid renderer.
+Companion to [SPECS.md](SPECS.md). Open the mermaid blocks in GitHub or any mermaid renderer.
 
 **Auth:** shopper sign up + sign in. Admin is seeded. **No shipping address** in v1.
 

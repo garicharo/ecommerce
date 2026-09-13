@@ -15,11 +15,16 @@ node_modules/
 dist/
 dist-ssr/
 *.local
+/package-lock.json
+
+# Local study notes (not for GitHub)
+REACT_STRUCTURE.md
 
 # IDE
 .idea/
 *.iml
 .vscode/
+.cursor/
 .classpath
 .project
 .settings/

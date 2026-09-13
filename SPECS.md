@@ -2,7 +2,7 @@
 
 Frozen for the **4-day** build. If a case is not here, pick the cheapest option that does not oversell stock and write it in `KNOWN_ISSUES.md`.
 
-Related: [PLAN.md](PLAN.md) (why). This file is **what**.
+Related: [DIAGRAMS.md](DIAGRAMS.md) (flows). This file is the frozen **what**.
 
 CSV downloaded: **2026-09-09**.
 

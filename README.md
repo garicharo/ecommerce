@@ -20,7 +20,7 @@ You do **not** need Java or Node on the host for the graded path.
 ## Run
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/garicharo/ecommerce.git
 cd ecommerce
 docker compose up --build
 ```
@@ -55,7 +55,7 @@ flowchart LR
 
 Shopper and admin are rows in `users`, not extra containers. One Spring service serves both. Hiding `/admin` in React is not authorization — Spring still returns **403**.
 
-Database table diagram, import sequence, and the last-unit checkout race: [DIAGRAMS.md](DIAGRAMS.md). Request and response contract: [SPECS.md](SPECS.md). Design notes: [PLAN.md](PLAN.md). Gaps: [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+Database table diagram, import sequence, and the last-unit checkout race: [DIAGRAMS.md](DIAGRAMS.md). Request and response contract: [SPECS.md](SPECS.md). Gaps: [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ---
 
