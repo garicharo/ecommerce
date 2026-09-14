@@ -52,7 +52,7 @@ export function LoginPage() {
         <p className="muted">
           {pending
             ? "Log in to add that item to your cart. You will come back to the shop."
-            : "Demo admin: admin@shop.local / admin1234."}
+            : "Demo admin email admin@shop.local, password admin1234"}
         </p>
         <form className="card" onSubmit={(event) => void submit(event)}>
           <label className="field">

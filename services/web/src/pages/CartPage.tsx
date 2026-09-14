@@ -70,47 +70,35 @@ export function CartPage() {
   const cartTotal = items.reduce((sum, line) => sum + Number(line.price) * line.qty, 0);
 
   return (
-    <Layout title="Cart">
-      <div className="sheet">
+    <Layout>
+      <div className="sheet review">
+        <h1>Cart</h1>
         <StatusBanner error={error} />
         {loading ? <p className="copy-center">Loading…</p> : null}
         {!loading && items.length === 0 ? (
-          <p className="muted copy-center">
+          <p className="copy-center">
             Cart is empty. <Link to="/">Shop</Link>
           </p>
         ) : null}
         {!loading && items.length > 0 ? (
           <>
-            <table className="data cart-table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Description</th>
-                  <th className="qty-cell">Quantity</th>
-                  <th>Available</th>
-                  <th className="num">Unit price</th>
-                  <th className="num">Total</th>
-                </tr>
-              </thead>
-              <tbody>
+            <div className="card confirm">
+              <ul className="confirm-lines">
                 {items.map((line) => {
                   const href = productPath(line.sku);
                   return (
-                    <tr key={line.sku}>
-                      <td>
-                        <div className="cart-product">
-                          <Link className="thumb-link" to={href} aria-label={line.name}>
-                            <ProductImage className="thumb" sku={line.sku} name={line.name} />
-                          </Link>
-                          <Link className="cart-product-name" to={href}>
-                            {line.name}
-                          </Link>
-                        </div>
-                      </td>
-                      <td>
-                        <p className="cart-desc">{line.description || "—"}</p>
-                      </td>
-                      <td className="qty-cell">
+                    <li key={line.sku} className="confirm-line cart-edit-line">
+                      <Link className="thumb-link" to={href} aria-label={line.name}>
+                        <ProductImage className="thumb" sku={line.sku} name={line.name} />
+                      </Link>
+                      <div className="confirm-copy">
+                        <Link className="cart-product-name" to={href}>
+                          {line.name}
+                        </Link>
+                        {line.description ? <p className="muted cart-desc">{line.description}</p> : null}
+                        <p className="muted">
+                          {line.stock} available · {money(line.price)} each
+                        </p>
                         <CartLineQty
                           name={line.name}
                           qty={line.qty}
@@ -118,21 +106,19 @@ export function CartPage() {
                           onQty={(qty) => change(line.sku, qty, line.stock)}
                           onRemove={() => change(line.sku, 0, line.stock)}
                         />
-                      </td>
-                      <td>{line.stock} available</td>
-                      <td className="num">{money(line.price)}</td>
-                      <td className="num">{money(Number(line.price) * line.qty)}</td>
-                    </tr>
+                      </div>
+                      <span className="num">{money(Number(line.price) * line.qty)}</span>
+                    </li>
                   );
                 })}
-              </tbody>
-            </table>
+              </ul>
+            </div>
             <div className="pay-dock">
               <p className="cart-total">
                 <span>Cart total</span>
                 <strong>{money(cartTotal)}</strong>
               </p>
-              <Link className="btn btn-wide" to="/checkout">
+              <Link className="btn btn-pay" to="/checkout">
                 Checkout
               </Link>
             </div>
