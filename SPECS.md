@@ -22,7 +22,7 @@ CSV downloaded: **2026-09-09**.
 | Loading | Spinner/skeleton on catalog, import poll, checkout submit. Disable double-submit on checkout. |
 | Errors | Toast or inline. Checkout stock errors **per SKU**, not a generic 500. |
 | Out of stock | Badge + disable Add to cart. Product remains searchable. |
-| Images | `https://picsum.photos/seed/{sku}/600/600`, CSS fallback on error. |
+| Images | Primary storefront photos are picked from product name/category (Unsplash CDN) with a CSS/`picsum` fallback on error. The CSV has no image column. |
 | Responsive | Catalog usable at 1280px and ~375px. Admin can be desktop-first. |
 | A11y (minimum) | Labels on search/filters, button names, focus visible, no `dangerouslySetInnerHTML`. |
 | XSS | Render product `name` / `description` as text. The XSS CSV row must display, not execute. |
@@ -163,7 +163,7 @@ Query rules:
 - `category`: exact match, optional, AND with `q`.
 - `sort`: `name_asc` (default) \| `price_asc` \| `price_desc`.
 - `page`: 0-based. `size` default 20, max 50.
-- No Elasticsearch. Same endpoint for the grid and a 5-item typeahead (`size=5`).
+- No Elasticsearch. Catalog grid uses the same search endpoint. A 5-item typeahead (`size=5`) is not built in v1 (see `KNOWN_ISSUES.md`); the header search filters the grid.
 
 XSS in `name` is stored and returned as JSON; React text-nodes it. Search for `script` may find that row — that is correct.
 
@@ -231,7 +231,7 @@ Upload limits: UTF-8 CSV, `.csv` or `text/csv`, **max 2 MB**. 413 if larger.
 
 Checkout:
 
-- Header `Idempotency-Key` (UUID). Same key + same user → original order, HTTP 200. Different body with same key → 409.
+- Header `Idempotency-Key` (UUID). Same key + same user → original order, HTTP 200. Checkout body is empty in v1 (prices come from locked product rows), so there is no “different body, same key → 409” case.
 - Empty cart → 400 `CART_EMPTY`.
 - Any line `qty > stock` → 409 `INSUFFICIENT_STOCK`, **no** partial order, stock unchanged.
 - Fake payment **always APPROVED** in v1 (deterministic tests). Document “PSP + webhook” in README.
@@ -269,18 +269,19 @@ Checkout:
 
 1. Admin opens `/admin/imports` (must be `ROLE_ADMIN` or 403).
 2. Drag-and-drop or file picker. Browser reads `file.slice(0, 64KB)` only → table preview of ≤10 rows. This is **not** validation.
-3. Admin confirms. `POST /api/admin/imports` multipart `file`. Reject if not `.csv` / `text/csv` or size > 2 MB → **413**.
-4. API returns **202** `{ jobId }`. Insert `import_jobs` `QUEUED` then `RUNNING`.
-5. `@Async` worker streams the file (Commons CSV). Never load the whole file as one string.
-6. Header check (required names present). Fail job → `FAILED_HEADER`. Toast failure. Stop.
+3. Admin confirms. `POST /api/admin/imports` multipart `file`. Reject if not `.csv` / `text/csv` or size > 2 MB → **413** (`FILE_TOO_LARGE`).
+4. API processes the file **on the request thread** (v1 is capped at 2 MB). Returns **202** `{ jobId }` when the job reaches a terminal status (`COMPLETED`, `FAILED_HEADER`, or `FAILED`). Status starts as `RUNNING` (the `QUEUED` enum value is reserved for a future worker).
+5. Bytes are kept on `import_jobs.file_content` for the audit copy. Parsing uses Commons CSV over those bytes with a UTF-8 BOM stripped if present — not loading the CSV as one giant Java `String`.
+6. Header check (required names present, no duplicate required names). Fail job → `FAILED_HEADER`. Toast failure. Stop. Extra columns are ignored; log once at INFO: `ignoredColumns=[...]`.
 7. For each data row:
    - Empty row → `SKIPPED`.
    - Validate fields. Fail → `FAILED` + `code` (do not abort the file).
    - SKU new → insert, `created_at=now`, `origin=CSV`, `INSERTED`.
    - SKU exists → update (not `created_at`), `UPDATED`.
    - Same SKU earlier in this file → last wins + `DUPLICATE_SKU_UPSERT` warning.
-8. Flush every 50–100 valid rows.
-9. Job `COMPLETED`. Counts on the job row. Every line in `import_row_results`.
+   - Unexpected DB/upsert error on one row → `FAILED` + `UPSERT_FAILED`; other rows continue. Catastrophic parse failures mark the job `FAILED`.
+8. Each valid row is persisted as it succeeds (one upsert transaction per row).
+9. Job `COMPLETED` (or `FAILED` / `FAILED_HEADER`). Counts on the job row. Every line in `import_row_results`.
 10. UI polls ~1s → toast: “File with N rows: X loaded (a new, b already existed), f had errors.”
 11. Navigate to `/admin/imports/:jobId`: tabs New / Already existed / Errors (paginated). Errors grouped by `code`.
 12. Catalog `/admin/products` is the live store (not this file).
@@ -311,13 +312,13 @@ The **why it failed** for a row lives in `import_row_results.message` + `code`. 
 | price | Decimal `>= 0`. Reject `$`, `free`, blanks. Two decimal places stored. |
 | stock | Integer `>= 0`. Reject negatives and non-integers. |
 | weight_kg | Decimal `>= 0`. Reject blank. |
-| Partial success | Invalid rows do not abort the job. |
-| Chunk | Persist ~50–100 valid rows per flush. |
+| Partial success | Invalid rows (and per-row upsert failures) do not abort the job. |
+| Persist | One upsert transaction per valid row (2 MB file cap; chunked flush is a later scale-up). |
 | Concurrency | Two admins may import at once. Last writer wins per SKU. |
 
 ### Error codes
 
-`INVALID_HEADER`, `EMPTY_NAME`, `EMPTY_SKU`, `EMPTY_CATEGORY`, `EMPTY_DESCRIPTION`, `INVALID_PRICE`, `NEGATIVE_STOCK`, `INVALID_STOCK`, `EMPTY_WEIGHT`, `INVALID_WEIGHT`, `DUPLICATE_SKU_UPSERT` (warning).
+`INVALID_HEADER`, `EMPTY_NAME`, `EMPTY_SKU`, `EMPTY_CATEGORY`, `EMPTY_DESCRIPTION`, `INVALID_PRICE`, `NEGATIVE_STOCK`, `INVALID_STOCK`, `EMPTY_WEIGHT`, `INVALID_WEIGHT`, `MALFORMED_ROW`, `UPSERT_FAILED`, `DUPLICATE_SKU_UPSERT` (warning).
 
 Admin UI groups failed rows by `code`, shows count, then line numbers.
 
@@ -419,10 +420,16 @@ Skip for v1: full CSRF double-submit if time runs out (document it), rate limiti
 | Test | Assert |
 |---|---|
 | Header missing required names | Job `FAILED_HEADER`, 0 products. Extra columns still import. |
-| Provided CSV | Known error codes present; `RS-001` last wins (line 36 values); `BS-021` last wins (line 89 values). |
+| Provided CSV | Known error codes present; skips counted; `RS-001` last wins (line 36 values); `BS-021` last wins (line 89 values). |
+| Dirty mix CSV | Good row inserts; empty name / `$price` / negative stock fail individually; empty row skips; job still `COMPLETED`. |
+| UTF-8 BOM | Header with BOM still imports. |
 | XSS/SQLi rows | Persist; GET returns them as JSON strings. |
 | Checkout race | `stock=1`, two parallel checkouts → one PAID, one 409, stock=0. |
 | Idempotency | Two checkout POSTs same key → one order. |
+| Empty cart checkout | 400. |
+| Manual product validation | Empty name / negative price / negative stock → 400 with CSV-aligned codes; duplicate SKU → 409. |
+| Auth validation | Weak password / bad email → 400; taken email → 409. |
+| Cart validation | Blank sku / negative qty → 400; unknown sku → 404. |
 | Shopper import | 403. |
 | No cookie on admin | 401. |
 
@@ -443,7 +450,7 @@ Skip for v1: full CSRF double-submit if time runs out (document it), rate limiti
 | `spring.jpa.open-in-view` | `false`. |
 | Actuator | Health only. Do not expose `/actuator/env`. |
 | Unknown JSON fields | Ignore on read. |
-| Manual create vs CSV | Same validation. Duplicate SKU on `POST` → 409, not upsert (upsert is import-only). |
+| Manual create vs CSV | Same field rules (required non-blank text fields; price/stock/weight `>= 0`). CSV adds string parsing for dirty cells (`$29.99`, `free`). Duplicate SKU on `POST` → 409, not upsert (upsert is import-only). |
 | Two imports at once | Allowed. Last commit per SKU wins. |
 | Session idle | Default server session (e.g. 30 min). No remember-me. |
 | Guest | Catalog is public. Cart and checkout require an account (signup or login). |

@@ -93,6 +93,15 @@ class CheckoutIT extends PostgresIT {
         assertThat(productRepository.findBySku(sku).orElseThrow().getStock()).isEqualTo(4);
     }
 
+    @Test
+    void emptyCartCheckoutIsBadRequest() throws Exception {
+        User user = saveShopper("empty-" + UUID.randomUUID() + "@shop.local", PASSWORD);
+        mockMvc.perform(post("/api/checkout")
+                        .with(httpBasic(user.getEmail(), PASSWORD))
+                        .header("Idempotency-Key", UUID.randomUUID().toString()))
+                .andExpect(status().isBadRequest());
+    }
+
     private HttpResponse<String> httpCheckout(HttpClient client, String email, UUID key) throws Exception {
         String basic = Base64.getEncoder().encodeToString((email + ":" + PASSWORD).getBytes(StandardCharsets.UTF_8));
         HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/checkout"))

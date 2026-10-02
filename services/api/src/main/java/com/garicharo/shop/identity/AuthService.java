@@ -39,6 +39,10 @@ public class AuthService {
         this.securityContextRepository = securityContextRepository;
     }
 
+    private static final int MAX_EMAIL_LEN = 254;
+    private static final int MAX_DISPLAY_NAME_LEN = 120;
+    private static final int MAX_PASSWORD_LEN = 128;
+
     @Transactional
     public void signup(SignupRequest body) {
         if (body == null) {
@@ -50,8 +54,17 @@ public class AuthService {
         if (email.isBlank() || displayName.isBlank()) {
             throw new ApiException("INVALID_BODY", "email, password, and displayName are required", HttpStatus.BAD_REQUEST);
         }
+        if (email.length() > MAX_EMAIL_LEN || !email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+            throw new ApiException("INVALID_EMAIL", "email must look like name@example.com", HttpStatus.BAD_REQUEST);
+        }
+        if (displayName.length() > MAX_DISPLAY_NAME_LEN) {
+            throw new ApiException("INVALID_BODY", "displayName must be at most 120 characters", HttpStatus.BAD_REQUEST);
+        }
         if (password.length() < 8) {
             throw new ApiException("WEAK_PASSWORD", "Password must be at least 8 characters", HttpStatus.BAD_REQUEST);
+        }
+        if (password.length() > MAX_PASSWORD_LEN) {
+            throw new ApiException("WEAK_PASSWORD", "Password must be at most 128 characters", HttpStatus.BAD_REQUEST);
         }
         if (userRepository.findByEmail(email).isPresent()) {
             throw new ApiException("EMAIL_TAKEN", "An account with that email already exists", HttpStatus.CONFLICT);

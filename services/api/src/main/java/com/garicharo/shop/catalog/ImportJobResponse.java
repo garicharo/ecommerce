@@ -24,6 +24,8 @@ public record ImportJobResponse(
         String headline;
         if (job.getStatus() == ImportJobStatus.FAILED_HEADER) {
             headline = "Header is invalid. No rows were imported.";
+        } else if (job.getStatus() == ImportJobStatus.FAILED) {
+            headline = "Import failed before finishing. Check server logs; partial row results may exist.";
         } else if (job.getStatus() == ImportJobStatus.COMPLETED) {
             headline = "File with " + job.getTotalRows() + " rows: " + loaded + " loaded (" + job.getInserted()
                     + " new, " + job.getUpdated() + " already existed), " + job.getFailed() + " had errors";

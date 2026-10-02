@@ -63,6 +63,8 @@ public class ProductService {
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public Product create(Product product) {
+        ProductValidator.validateCreate(product);
+        ProductValidator.normalize(product);
         if (productRepository.findBySku(product.getSku()).isPresent()) {
             throw new ApiException(
                     "SKU_EXISTS",
@@ -79,6 +81,8 @@ public class ProductService {
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public Product update(String sku, Product product) {
+        ProductValidator.validateUpdate(product);
+        ProductValidator.normalize(product);
         Product existing = getBySku(sku);
         existing.setName(product.getName());
         existing.setDescription(product.getDescription());

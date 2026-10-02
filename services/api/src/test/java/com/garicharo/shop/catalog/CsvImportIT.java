@@ -70,8 +70,11 @@ class CsvImportIT extends PostgresIT {
                 .getResponse()
                 .getContentAsString();
         int failed = JsonPath.read(body, "$.failed");
+        int skipped = JsonPath.read(body, "$.skipped");
         assertThat(failed).isGreaterThan(0);
+        assertThat(skipped).isGreaterThan(0);
         assertThat(body).contains("INVALID_PRICE");
+        assertThat(body).containsAnyOf("NEGATIVE_STOCK", "EMPTY_NAME", "EMPTY_WEIGHT", "EMPTY_CATEGORY");
 
         mockMvc.perform(get("/api/products/RS-001"))
                 .andExpect(status().isOk())
@@ -93,6 +96,57 @@ class CsvImportIT extends PostgresIT {
         mockMvc.perform(get("/api/products/SQL-001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Robert'); DROP TABLE products;--"));
+    }
+
+    @Test
+    void utf8BomHeaderStillImports() throws Exception {
+        String sku = "BOM-" + UUID.randomUUID().toString().substring(0, 8);
+        byte[] bom = new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+        byte[] csvBytes = """
+                name,sku,description,category,price,stock,weight_kg
+                Bom Product,%s,desc,Gadgets,2.50,4,0.3
+                """.formatted(sku).getBytes(StandardCharsets.UTF_8);
+        byte[] withBom = new byte[bom.length + csvBytes.length];
+        System.arraycopy(bom, 0, withBom, 0, bom.length);
+        System.arraycopy(csvBytes, 0, withBom, bom.length, csvBytes.length);
+
+        String jobId = importJob(csv("bom.csv", withBom));
+        mockMvc.perform(get("/api/admin/imports/" + jobId).with(httpBasic(ADMIN, ADMIN_PASSWORD)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.inserted").value(1));
+        mockMvc.perform(get("/api/products/" + sku))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Bom Product"));
+    }
+
+    @Test
+    void dirtyRowsFailIndividuallyWithoutAbortingJob() throws Exception {
+        String goodSku = "OK-" + UUID.randomUUID().toString().substring(0, 8);
+        MockMultipartFile file = csv("dirty.csv", """
+                name,sku,description,category,price,stock,weight_kg
+                Good Row,%s,desc,Cat,1.00,2,0.1
+                ,BAD-EMPTY,desc,Cat,1.00,2,0.1
+                Bad Price,BAD-PRICE,desc,Cat,$9.99,2,0.1
+                Neg Stock,BAD-STOCK,desc,Cat,1.00,-1,0.1
+                
+                """.formatted(goodSku));
+        String jobId = importJob(file);
+        String body = mockMvc.perform(get("/api/admin/imports/" + jobId).with(httpBasic(ADMIN, ADMIN_PASSWORD)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.inserted").value(1))
+                .andExpect(jsonPath("$.failed").value(3))
+                .andExpect(jsonPath("$.skipped").value(1))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(body).contains("EMPTY_NAME");
+        assertThat(body).contains("INVALID_PRICE");
+        assertThat(body).contains("NEGATIVE_STOCK");
+        mockMvc.perform(get("/api/products/" + goodSku))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Good Row"));
     }
 
     @Test
