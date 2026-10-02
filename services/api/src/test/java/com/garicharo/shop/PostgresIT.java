@@ -7,10 +7,12 @@ import java.time.ZoneOffset;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import com.garicharo.shop.catalog.Product;
@@ -24,11 +26,39 @@ import com.garicharo.shop.identity.UserRepository;
 @AutoConfigureMockMvc
 public abstract class PostgresIT {
 
-    @ServiceConnection
-    static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
+    /**
+     * Prefer Testcontainers when Docker can actually start containers.
+     * Set {@code SHOP_IT_LOCAL_DB=true} to force host Postgres (jdbc://127.0.0.1:5432/shop).
+     */
+    private static final PostgreSQLContainer POSTGRES = startPostgresIfPossible();
 
-    static {
-        postgres.start();
+    @DynamicPropertySource
+    static void datasource(DynamicPropertyRegistry registry) {
+        if (POSTGRES != null) {
+            registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+            registry.add("spring.datasource.username", POSTGRES::getUsername);
+            registry.add("spring.datasource.password", POSTGRES::getPassword);
+            return;
+        }
+        registry.add("spring.datasource.url", () -> "jdbc:postgresql://127.0.0.1:5432/shop");
+        registry.add("spring.datasource.username", () -> "shop");
+        registry.add("spring.datasource.password", () -> "shop");
+    }
+
+    private static PostgreSQLContainer startPostgresIfPossible() {
+        if (Boolean.parseBoolean(System.getenv().getOrDefault("SHOP_IT_LOCAL_DB", "false"))) {
+            return null;
+        }
+        try {
+            if (!DockerClientFactory.instance().isDockerAvailable()) {
+                return null;
+            }
+            PostgreSQLContainer container = new PostgreSQLContainer("postgres:16-alpine");
+            container.start();
+            return container;
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     @LocalServerPort

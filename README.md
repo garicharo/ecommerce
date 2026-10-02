@@ -113,7 +113,7 @@ I used an assistant. There are **no generated comments** in source.
 
 ## If this grows
 
-This version already has seams so growth is not a rewrite: streaming file + job table, `202` + poll, `catalog` / `commerce` packages, checkout locks, idempotency key.
+This version already has seams so growth is not a rewrite: import job table + per-row reports (sync for ≤2 MB today; queue worker later), `202` + poll, `catalog` / `commerce` packages, checkout locks, idempotency key.
 
 | If this happens | Then | Not before |
 |---|---|---|

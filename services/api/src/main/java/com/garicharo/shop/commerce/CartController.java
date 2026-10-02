@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.garicharo.shop.identity.CurrentUser;
 import com.garicharo.shop.shared.ApiException;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/cart")
 public class CartController {
@@ -29,7 +31,7 @@ public class CartController {
     }
 
     @PutMapping("/items")
-    public CartResponse put(Authentication authentication, @RequestBody PutCartItemRequest body) {
+    public CartResponse put(Authentication authentication, @Valid @RequestBody PutCartItemRequest body) {
         if (body == null || body.sku() == null || body.sku().isBlank()) {
             throw new ApiException("INVALID_SKU", "sku is required", HttpStatus.BAD_REQUEST);
         }

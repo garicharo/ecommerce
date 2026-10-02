@@ -1,4 +1,8 @@
 package com.garicharo.shop.identity;
 
-public record LoginRequest(String email, String password) {
+import jakarta.validation.constraints.NotBlank;
+
+public record LoginRequest(
+        @NotBlank(message = "email is required") String email,
+        @NotBlank(message = "password is required") String password) {
 }

@@ -4,5 +4,6 @@ public enum ImportJobStatus {
     QUEUED,
     RUNNING,
     COMPLETED,
-    FAILED_HEADER
+    FAILED_HEADER,
+    FAILED
 }

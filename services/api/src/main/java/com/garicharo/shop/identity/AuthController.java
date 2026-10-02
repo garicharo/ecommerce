@@ -14,6 +14,7 @@ import com.garicharo.shop.shared.ApiException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -30,7 +31,7 @@ public class AuthController {
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
     public AuthUserResponse signup(
-            @RequestBody SignupRequest body,
+            @Valid @RequestBody SignupRequest body,
             HttpServletRequest request,
             HttpServletResponse response) {
         authService.signup(body);
@@ -39,7 +40,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthUserResponse login(
-            @RequestBody LoginRequest body,
+            @Valid @RequestBody LoginRequest body,
             HttpServletRequest request,
             HttpServletResponse response) {
         if (body == null) {
