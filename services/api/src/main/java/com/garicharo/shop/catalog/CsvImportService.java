@@ -47,129 +47,147 @@ public class CsvImportService {
         }
         String filename = file.getOriginalFilename() == null ? "upload.csv" : file.getOriginalFilename();
         String contentType = file.getContentType() == null ? "" : file.getContentType();
+        byte[] fileContent;
+        try {
+            fileContent = CsvHeaders.stripBom(file.getBytes());
+        } catch (IOException e) {
+            throw new ApiException("INVALID_CSV", CsvHeaders.requiredColumnsMessage(), HttpStatus.BAD_REQUEST);
+        }
+        if (CsvHeaders.looksLikeSpreadsheet(filename, contentType, fileContent)) {
+            throw new ApiException("UNSUPPORTED_FILE", CsvHeaders.requiredColumnsMessage(), HttpStatus.BAD_REQUEST);
+        }
         if (!filename.toLowerCase().endsWith(".csv")
                 && !contentType.contains("csv")
                 && !contentType.equals("application/vnd.ms-excel")) {
-            throw new ApiException("INVALID_HEADER", "File must be a CSV", HttpStatus.BAD_REQUEST);
+            throw new ApiException("INVALID_HEADER", CsvHeaders.requiredColumnsMessage(), HttpStatus.BAD_REQUEST);
         }
 
-        try {
-            byte[] fileContent = file.getBytes();
-            try (CSVParser csvParser = CSVFormat.RFC4180.builder()
-                    .setHeader()
-                    .setSkipHeaderRecord(true)
-                    .build()
-                    .parse(new InputStreamReader(new ByteArrayInputStream(fileContent), StandardCharsets.UTF_8))) {
+        try (CSVParser csvParser = CSVFormat.RFC4180.builder()
+                .setHeader()
+                .setSkipHeaderRecord(true)
+                .setIgnoreEmptyLines(false)
+                .build()
+                .parse(new InputStreamReader(new ByteArrayInputStream(fileContent), StandardCharsets.UTF_8))) {
 
-                List<String> headers = csvParser.getHeaderNames();
-                OffsetDateTime now = OffsetDateTime.now();
+            List<String> headers = csvParser.getHeaderNames();
+            OffsetDateTime now = OffsetDateTime.now();
+            Map<String, String> headerMap = CsvHeaders.mapCanonicalToOriginal(headers);
 
-                if (headers.isEmpty()
-                        || !headers.containsAll(CsvRowValidator.requiredColumns())
-                        || CsvRowValidator.requiredColumns().stream()
-                                .anyMatch(required -> headers.stream().filter(required::equals).count() > 1)) {
-                    return saveFailedHeader(user, filename, fileContent, now);
-                }
+            if (headerMap.isEmpty()) {
+                return saveFailedHeader(user, filename, fileContent, now);
+            }
 
-                ImportJob importJob = new ImportJob();
-                importJob.setCreatedBy(user);
-                importJob.setStatus(ImportJobStatus.RUNNING);
-                importJob.setFilename(filename);
-                importJob.setFileContent(fileContent);
-                importJob.setByteSize(fileContent.length);
-                importJob.setHeaderOk(true);
-                importJob.setStartedAt(now);
-                importJob.setCreatedAt(now);
-                importJob = importJobRepository.save(importJob);
+            ImportJob importJob = new ImportJob();
+            importJob.setCreatedBy(user);
+            importJob.setStatus(ImportJobStatus.RUNNING);
+            importJob.setFilename(filename);
+            importJob.setFileContent(fileContent);
+            importJob.setByteSize(fileContent.length);
+            importJob.setHeaderOk(true);
+            importJob.setStartedAt(now);
+            importJob.setCreatedAt(now);
+            importJob = importJobRepository.save(importJob);
 
-                int inserted = 0;
-                int updated = 0;
-                int failed = 0;
-                int skipped = 0;
-                int warnings = 0;
-                int rows = 0;
-                Map<String, ImportRowResult> firstBySku = new HashMap<>();
-
-                for (CSVRecord csvRecord : csvParser) {
-                    rows++;
-                    String name = csvRecord.get("name");
-                    String sku = csvRecord.get("sku");
-                    String description = csvRecord.get("description");
-                    String category = csvRecord.get("category");
-                    String price = csvRecord.get("price");
-                    String stock = csvRecord.get("stock");
-                    String weightKg = csvRecord.get("weight_kg");
-                    int lineNumber = (int) csvParser.getCurrentLineNumber();
-
-                    if (CsvRowValidator.isEmptyRow(name, sku, description, category, price, stock, weightKg)) {
-                        ImportRowResult row = new ImportRowResult();
-                        row.setJob(importJob);
-                        row.setLineNumber(lineNumber);
-                        row.setOutcome(ImportRowOutcome.SKIPPED);
-                        row.setCreatedAt(now);
-                        importRowResultRepository.save(row);
-                        skipped++;
-                        continue;
-                    }
-
-                    CsvRowValidator.Failure failure = CsvRowValidator.validate(
-                            name, sku, description, category, price, stock, weightKg);
-                    if (failure != null) {
-                        ImportRowResult row = new ImportRowResult();
-                        row.setJob(importJob);
-                        row.setLineNumber(lineNumber);
-                        row.setOutcome(ImportRowOutcome.FAILED);
-                        row.setSku(sku != null && !sku.isBlank() ? sku.trim() : null);
-                        row.setCode(failure.code());
-                        row.setMessage(failure.message());
-                        row.setCreatedAt(now);
-                        importRowResultRepository.save(row);
-                        failed++;
-                        continue;
-                    }
-
-                    CsvRowValidator.ValidRow validRow = CsvRowValidator.parse(
-                            name, sku, description, category, price, stock, weightKg);
-                    ImportRowOutcome outcome = productCsvWriter.upsert(validRow);
-                    ImportRowResult importRowResult = new ImportRowResult();
-                    importRowResult.setSku(validRow.sku());
-                    importRowResult.setJob(importJob);
-                    importRowResult.setLineNumber(lineNumber);
-                    importRowResult.setOutcome(outcome);
-                    importRowResult.setCreatedAt(now);
-                    importRowResult = importRowResultRepository.save(importRowResult);
-
-                    ImportRowResult earlier = firstBySku.putIfAbsent(validRow.sku(), importRowResult);
-                    if (earlier != null) {
-                        importRowResult.setCode("DUPLICATE_SKU_UPSERT");
-                        importRowResult.setMessage(
-                                "SKU already appeared on CSV line " + earlier.getLineNumber()
-                                        + "; last row wins");
-                        importRowResultRepository.save(importRowResult);
-                        warnings++;
-                    }
-
-                    if (outcome == ImportRowOutcome.INSERTED) {
-                        inserted++;
-                    } else if (outcome == ImportRowOutcome.UPDATED) {
-                        updated++;
-                    }
-                }
-
+            try {
+                return finishJob(csvParser, importJob, headerMap, now);
+            } catch (IllegalArgumentException | java.io.UncheckedIOException ex) {
+                importJob.setStatus(ImportJobStatus.FAILED_HEADER);
+                importJob.setHeaderOk(false);
                 importJob.setFinishedAt(OffsetDateTime.now());
-                importJob.setStatus(ImportJobStatus.COMPLETED);
-                importJob.setTotalRows(rows);
-                importJob.setInserted(inserted);
-                importJob.setUpdated(updated);
-                importJob.setFailed(failed);
-                importJob.setSkipped(skipped);
-                importJob.setWarnings(warnings);
                 importJobRepository.save(importJob);
-                return importJob.getId();
+                throw new ApiException("INVALID_CSV", CsvHeaders.requiredColumnsMessage(), HttpStatus.BAD_REQUEST);
             }
         } catch (IOException e) {
-            throw new ApiException("CSV_IMPORT_FAILED", "Failed to import CSV", HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new ApiException("INVALID_CSV", CsvHeaders.requiredColumnsMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    private UUID finishJob(CSVParser csvParser, ImportJob importJob, Map<String, String> headerMap,
+            OffsetDateTime now) {
+        int inserted = 0;
+        int updated = 0;
+        int failed = 0;
+        int skipped = 0;
+        int warnings = 0;
+        int rows = 0;
+        Map<String, ImportRowResult> firstBySku = new HashMap<>();
+
+        for (CSVRecord csvRecord : csvParser) {
+            rows++;
+            String name = csvRecord.get(headerMap.get("name"));
+            String sku = csvRecord.get(headerMap.get("sku"));
+            String description = csvRecord.get(headerMap.get("description"));
+            String category = csvRecord.get(headerMap.get("category"));
+            String price = csvRecord.get(headerMap.get("price"));
+            String stock = csvRecord.get(headerMap.get("stock"));
+            String weightKg = csvRecord.get(headerMap.get("weight_kg"));
+            int lineNumber = (int) csvParser.getCurrentLineNumber();
+
+            if (CsvRowValidator.isEmptyRow(name, sku, description, category, price, stock, weightKg)) {
+                ImportRowResult row = new ImportRowResult();
+                row.setJob(importJob);
+                row.setLineNumber(lineNumber);
+                row.setOutcome(ImportRowOutcome.SKIPPED);
+                row.setCreatedAt(now);
+                importRowResultRepository.save(row);
+                skipped++;
+                continue;
+            }
+
+            CsvRowValidator.Failure failure = CsvRowValidator.validate(
+                    name, sku, description, category, price, stock, weightKg);
+            if (failure != null) {
+                ImportRowResult row = new ImportRowResult();
+                row.setJob(importJob);
+                row.setLineNumber(lineNumber);
+                row.setOutcome(ImportRowOutcome.FAILED);
+                row.setSku(sku != null && !sku.isBlank() ? sku.trim() : null);
+                row.setCode(failure.code());
+                row.setMessage(failure.message());
+                row.setCreatedAt(now);
+                importRowResultRepository.save(row);
+                failed++;
+                continue;
+            }
+
+            CsvRowValidator.ValidRow validRow = CsvRowValidator.parse(
+                    name, sku, description, category, price, stock, weightKg);
+            ImportRowOutcome outcome = productCsvWriter.upsert(validRow);
+            ImportRowResult importRowResult = new ImportRowResult();
+            importRowResult.setSku(validRow.sku());
+            importRowResult.setJob(importJob);
+            importRowResult.setLineNumber(lineNumber);
+            importRowResult.setOutcome(outcome);
+            importRowResult.setCreatedAt(now);
+            importRowResult = importRowResultRepository.save(importRowResult);
+
+            ImportRowResult earlier = firstBySku.putIfAbsent(validRow.sku(), importRowResult);
+            if (earlier != null) {
+                importRowResult.setCode("DUPLICATE_SKU_UPSERT");
+                importRowResult.setMessage(
+                        "SKU already appeared on CSV line " + earlier.getLineNumber()
+                                + "; last row wins");
+                importRowResultRepository.save(importRowResult);
+                warnings++;
+            }
+
+            if (outcome == ImportRowOutcome.INSERTED) {
+                inserted++;
+            } else if (outcome == ImportRowOutcome.UPDATED) {
+                updated++;
+            }
+        }
+
+        importJob.setFinishedAt(OffsetDateTime.now());
+        importJob.setStatus(ImportJobStatus.COMPLETED);
+        importJob.setTotalRows(rows);
+        importJob.setInserted(inserted);
+        importJob.setUpdated(updated);
+        importJob.setFailed(failed);
+        importJob.setSkipped(skipped);
+        importJob.setWarnings(warnings);
+        importJobRepository.save(importJob);
+        return importJob.getId();
     }
 
     public ImportJobResponse getJob(UUID jobId) {

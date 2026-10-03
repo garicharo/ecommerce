@@ -68,7 +68,7 @@ Database table diagram, import sequence, and the last-unit checkout race: [DIAGR
 3. Drop `fixtures/Code Challenge E-Commerce.csv` (max **2 megabytes**).
 4. Open the job. You should see new / updated / failed / skipped — not a silent bulk load into Postgres.
 
-On a fresh database their file is about 97 data rows: most load, a handful **fail** (`$29.99`, `free`, negative stock, empty name/category/weight), two empty rows **skip**, duplicate product codes **update in place** (last row wins, with a warning). Names that look like script tags or database injection are stored as **text**; the storefront must not execute them.
+On a fresh database their file is about 97 data rows: most load, a handful **fail** (`$29.99`, `free`, negative stock, empty name/category/weight), two empty rows **skip**, duplicate product codes **update in place** (last row wins, with a warning). Names that look like script tags or database injection are stored as **text**; the storefront must not execute them. Create/update in Admin uses the **same** price/stock/name rules as the CSV. The file must be a **comma-separated UTF-8 CSV** with those column names (Excel `.xlsx` is rejected with `UNSUPPORTED_FILE`; `SKU` / `Product Name` aliases are accepted).
 
 ### 2. Search (anyone)
 
@@ -113,7 +113,7 @@ I used an assistant. There are **no generated comments** in source.
 
 ## If this grows
 
-This version already has seams so growth is not a rewrite: streaming file + job table, `202` + poll, `catalog` / `commerce` packages, checkout locks, idempotency key.
+This version already has seams so growth is not a rewrite: import job table + poll, `catalog` / `commerce` packages, checkout locks, idempotency key. CSV parse finishes in the same request as `202`; there is no background worker.
 
 | If this happens | Then | Not before |
 |---|---|---|

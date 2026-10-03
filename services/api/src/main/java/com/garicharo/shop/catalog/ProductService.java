@@ -62,14 +62,17 @@ public class ProductService {
 
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
-    public Product create(Product product) {
-        if (productRepository.findBySku(product.getSku()).isPresent()) {
+    public Product create(ProductWriteRequest request) {
+        CsvRowValidator.ValidRow row = requireValid(request.getName(), request.getSku(), request.getDescription(),
+                request.getCategory(), request.getPrice(), request.getStock(), request.getWeightKg());
+        if (productRepository.findBySku(row.sku()).isPresent()) {
             throw new ApiException(
                     "SKU_EXISTS",
-                    "Product with sku: " + product.getSku() + " already exists",
+                    "Product with sku: " + row.sku() + " already exists",
                     HttpStatus.CONFLICT);
         }
-        product.setId(null);
+        Product product = new Product();
+        apply(product, row);
         product.setOrigin(ProductOrigin.MANUAL);
         product.setCreatedAt(OffsetDateTime.now());
         product.setUpdatedAt(OffsetDateTime.now());
@@ -78,15 +81,12 @@ public class ProductService {
 
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
-    public Product update(String sku, Product product) {
+    public Product update(String sku, ProductWriteRequest request) {
+        CsvRowValidator.ValidRow row = requireValid(request.getName(), sku, request.getDescription(),
+                request.getCategory(), request.getPrice(), request.getStock(), request.getWeightKg());
         Product existing = getBySku(sku);
-        existing.setName(product.getName());
-        existing.setDescription(product.getDescription());
-        existing.setCategory(product.getCategory());
-        existing.setPrice(product.getPrice());
-        existing.setStock(product.getStock());
-        existing.setWeightKg(product.getWeightKg());
-        existing.setVersion(product.getVersion());
+        apply(existing, row);
+        existing.setVersion(request.getVersion());
         existing.setUpdatedAt(OffsetDateTime.now());
         return productRepository.save(existing);
     }
@@ -102,6 +102,26 @@ public class ProductService {
                     HttpStatus.CONFLICT);
         }
         productRepository.delete(existing);
+    }
+
+    private static CsvRowValidator.ValidRow requireValid(String name, String sku, String description, String category,
+            String price, String stock, String weightKg) {
+        CsvRowValidator.Failure failure = CsvRowValidator.validate(
+                name, sku, description, category, price, stock, weightKg);
+        if (failure != null) {
+            throw new ApiException(failure.code(), failure.message(), HttpStatus.BAD_REQUEST);
+        }
+        return CsvRowValidator.parse(name, sku, description, category, price, stock, weightKg);
+    }
+
+    private static void apply(Product product, CsvRowValidator.ValidRow row) {
+        product.setSku(row.sku());
+        product.setName(row.name());
+        product.setDescription(row.description());
+        product.setCategory(row.category());
+        product.setPrice(row.price());
+        product.setStock(row.stock());
+        product.setWeightKg(row.weightKg());
     }
 
     private static ApiException notFound(String sku) {

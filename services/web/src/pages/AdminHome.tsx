@@ -54,14 +54,14 @@ export function AdminHome() {
             Category <input name="category" required />
           </label>
           <label className="field">
-            Price <input name="price" required defaultValue="10.00" />
+            Price <input name="price" type="number" min={0} step="0.01" required defaultValue="10.00" />
           </label>
           <label className="field">
             Stock
             <input name="stock" type="number" min={0} required defaultValue={1} />
           </label>
           <label className="field">
-            Weight kg <input name="weightKg" required defaultValue="0.500" />
+            Weight kg <input name="weightKg" type="number" min={0} step="0.001" required defaultValue="0.500" />
           </label>
         </div>
         <button className="btn btn-create" type="submit">
