@@ -163,7 +163,7 @@ Query rules:
 - `category`: exact match, optional, AND with `q`.
 - `sort`: `name_asc` (default) \| `price_asc` \| `price_desc`.
 - `page`: 0-based. `size` default 20, max 50.
-- No Elasticsearch. Same endpoint for the grid and a 5-item typeahead (`size=5`).
+- No Elasticsearch. The storefront uses this list as the search UI (`size=24`). A 5-row typeahead was not built.
 
 XSS in `name` is stored and returned as JSON; React text-nodes it. Search for `script` may find that row — that is correct.
 
@@ -171,7 +171,7 @@ XSS in `name` is stored and returned as JSON; React text-nodes it. Search for `s
 
 | Method | Path | Notes |
 |---|---|---|
-| `POST` | `/api/admin/products` | Create. 409 if SKU exists. |
+| `POST` | `/api/admin/products` | Create. **400** if name/sku/price/stock/weight fail the same rules as a CSV row. 409 if SKU exists. |
 | `PUT` | `/api/admin/products/{sku}` | Full update except SKU. Body includes `version`. **409** `OPTIMISTIC_LOCK` if `version` is stale (two admins). |
 | `DELETE` | `/api/admin/products/{sku}` | **409** if any `order_items` reference it. Admin must set `stock=0` instead. History stays. |
 
@@ -260,7 +260,7 @@ Checkout:
 
 `name`, `sku`, `description`, `category`, `price`, `stock`, `weight_kg`
 
-- Those seven **must exist** in the header (case-sensitive as in the spec). If any is missing → `FAILED_HEADER`, zero writes.
+- Those seven **must exist** in the header (case-insensitive). Aliases: `SKU`/`product code` → `sku`, `Product Name`/`title` → `name`, `weight` → `weight_kg`. If the seven cannot be mapped → `FAILED_HEADER`, zero writes.
 - **Extra columns are ignored** (e.g. `image_url`, `color`). We only map the seven we own. Log once at INFO: `ignoredColumns=[...]`.
 - Duplicate required names → `FAILED_HEADER`.
 - Column **order does not matter**. Map with the CSV header row, not `row[3]`.
@@ -270,20 +270,18 @@ Checkout:
 1. Admin opens `/admin/imports` (must be `ROLE_ADMIN` or 403).
 2. Drag-and-drop or file picker. Browser reads `file.slice(0, 64KB)` only → table preview of ≤10 rows. This is **not** validation.
 3. Admin confirms. `POST /api/admin/imports` multipart `file`. Reject if not `.csv` / `text/csv` or size > 2 MB → **413**.
-4. API returns **202** `{ jobId }`. Insert `import_jobs` `QUEUED` then `RUNNING`.
-5. `@Async` worker streams the file (Commons CSV). Never load the whole file as one string.
-6. Header check (required names present). Fail job → `FAILED_HEADER`. Toast failure. Stop.
-7. For each data row:
+4. API returns **202** `{ jobId }` **after** the file has been parsed in that request (no background worker). Status is already `COMPLETED` or `FAILED_HEADER`.
+5. Header check (required names present, aliases allowed). Fail job → `FAILED_HEADER`. Stop.
+6. For each data row:
    - Empty row → `SKIPPED`.
    - Validate fields. Fail → `FAILED` + `code` (do not abort the file).
    - SKU new → insert, `created_at=now`, `origin=CSV`, `INSERTED`.
    - SKU exists → update (not `created_at`), `UPDATED`.
    - Same SKU earlier in this file → last wins + `DUPLICATE_SKU_UPSERT` warning.
-8. Flush every 50–100 valid rows.
-9. Job `COMPLETED`. Counts on the job row. Every line in `import_row_results`.
-10. UI polls ~1s → toast: “File with N rows: X loaded (a new, b already existed), f had errors.”
-11. Navigate to `/admin/imports/:jobId`: tabs New / Already existed / Errors (paginated). Errors grouped by `code`.
-12. Catalog `/admin/products` is the live store (not this file).
+7. Job `COMPLETED`. Counts on the job row. Every line in `import_row_results`.
+8. UI polls ~1s → toast: “File with N rows: X loaded (a new, b already existed), f had errors.”
+9. Navigate to `/admin/imports/:jobId`: tabs New / Already existed / Errors (paginated). Errors grouped by `code`.
+10. Catalog `/admin/products` is the live store (not this file).
 
 The **why it failed** for a row lives in `import_row_results.message` + `code`. That is the CSV audit. Application logs are extra (below).
 

@@ -115,6 +115,50 @@ class CsvImportIT extends PostgresIT {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void bomAndAliasedHeadersStillImport() throws Exception {
+        String sku = "BOM-" + UUID.randomUUID().toString().substring(0, 8);
+        byte[] bom = new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+        String csv = """
+                Product Name,SKU,description,category,price,stock,weight
+                Bombed Hat,%s,warm,Caps,8.50,4,0.2
+                """.formatted(sku);
+        byte[] body = new byte[bom.length + csv.getBytes(StandardCharsets.UTF_8).length];
+        System.arraycopy(bom, 0, body, 0, bom.length);
+        System.arraycopy(csv.getBytes(StandardCharsets.UTF_8), 0, body, bom.length, csv.getBytes(StandardCharsets.UTF_8).length);
+        String jobId = importJob(csv("bom.csv", body));
+        mockMvc.perform(get("/api/admin/imports/" + jobId).with(httpBasic(ADMIN, ADMIN_PASSWORD)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.inserted").value(1));
+        mockMvc.perform(get("/api/products/" + sku))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Bombed Hat"));
+    }
+
+    @Test
+    void spreadsheetBytesAreRejected() throws Exception {
+        byte[] zipish = new byte[] {'P', 'K', 0x03, 0x04, 0, 0, 0, 0};
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "catalog.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", zipish);
+        mockMvc.perform(multipart("/api/admin/imports").file(file).with(httpBasic(ADMIN, ADMIN_PASSWORD)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UNSUPPORTED_FILE"));
+    }
+
+    @Test
+    void unknownColumnNamesFailHeader() throws Exception {
+        MockMultipartFile file = csv("odd.csv", """
+                producto,codigo,detalle,grupo,costo,piezas,kilos
+                Silla,S-1,madera,Casa,10,2,1
+                """);
+        String jobId = importJob(file);
+        mockMvc.perform(get("/api/admin/imports/" + jobId).with(httpBasic(ADMIN, ADMIN_PASSWORD)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FAILED_HEADER"))
+                .andExpect(jsonPath("$.inserted").value(0));
+    }
+
     private String importJob(MockMultipartFile file) throws Exception {
         String body = mockMvc.perform(multipart("/api/admin/imports")
                         .file(file)

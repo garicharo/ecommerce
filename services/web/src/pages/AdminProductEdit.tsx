@@ -86,13 +86,13 @@ export function AdminProductEdit() {
           Category <input name="category" required defaultValue={product.category} />
         </label>
         <label className="field">
-          Price <input name="price" required defaultValue={String(product.price)} />
+          Price <input name="price" type="number" min={0} step="0.01" required defaultValue={String(product.price)} />
         </label>
         <label className="field">
           Stock <input name="stock" type="number" min={0} required defaultValue={product.stock} />
         </label>
         <label className="field">
-          Weight kg <input name="weightKg" required defaultValue={String(product.weightKg)} />
+          Weight kg <input name="weightKg" type="number" min={0} step="0.001" required defaultValue={String(product.weightKg)} />
         </label>
         <p>
           <button className="btn" type="submit" disabled={busy}>

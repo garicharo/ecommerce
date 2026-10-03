@@ -43,12 +43,12 @@ public class ProductController {
     }
 
     @PostMapping("/admin/products")
-    public Product createProduct(@RequestBody Product product) {
+    public Product createProduct(@RequestBody ProductWriteRequest product) {
         return productService.create(product);
     }
 
     @PutMapping("/admin/products/{sku}")
-    public Product updateProduct(@PathVariable String sku, @RequestBody Product product) {
+    public Product updateProduct(@PathVariable String sku, @RequestBody ProductWriteRequest product) {
         return productService.update(sku, product);
     }
 
